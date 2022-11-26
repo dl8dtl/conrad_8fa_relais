@@ -241,10 +241,11 @@ sndcmd (const int fd, const unsigned char command, const unsigned char addr, con
 #ifdef DEBUG
   printf (" -> send: %d %d %d %d\n", wbuf[0], wbuf[1], wbuf[2], wbuf[3]);
 #endif
-  usleep (100000L);             // 100 ms Pause, Pause für die Karte
+  usleep (200000L);             // 100 ms Pause, Pause für die Karte
   i = write (fd, wbuf, 4);
   tcdrain (fd);                 // wait till the output has been transmitted
-  g_lli_time1 = get_time (NULL);        // store send time
+usleep  (10000L); 
+ g_lli_time1 = get_time (NULL);        // store send time
   if (4 == i)
     return (0);
   printf ("ERROR: Could send only %d of 4 Bytes\n", i);
