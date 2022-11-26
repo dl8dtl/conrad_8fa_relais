@@ -453,13 +453,13 @@ func_open (void *threadid __attribute__((unused)))
 int
 main (int argc, char *argv[])
 {                               // static asserts that all values are initialized with 0 recursively
-  static int i, i_ret, id0, id1;        // i, File descriptor for the port, return value, thread id
-  static unsigned char ans, adr, stat, val, rval, n, retval;
-  static pthread_attr_t attr;
-  static int thread_return0, thread_return1;    // for pthread_return
-  static void *statusp;         // for pthread_return
-  static jmp_buf env;           // environment
-  static pthread_t thread0;
+  int i, i_ret, id0, id1;        // i, File descriptor for the port, return value, thread id
+  unsigned char ans, adr, stat, val, rval = 0, n, retval;
+  pthread_attr_t attr;
+  int thread_return0, thread_return1;    // for pthread_return
+  void *statusp;         // for pthread_return
+  jmp_buf env;           // environment
+  pthread_t thread0;
 
   setjmp (env);                 // restart point after failure
   for (i = 0; i <= 0xff; i++)
