@@ -248,6 +248,7 @@ sndcmd (const int fd, const unsigned char command, const unsigned char addr, con
   if (4 == i)
     return (0);
   printf ("ERROR: Could send only %d of 4 Bytes\n", i);
+  usleep (10000L);             // 10 ms Pause, Pause für die Karte
   return (-1);
 }
 
