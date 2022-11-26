@@ -41,6 +41,7 @@ Rolf Freitag 2005: Added select, tcflush, timeout with pthread, ioctl for exclus
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <fcntl.h>              /* File control definitions */
 #include <termios.h>            /* POSIX terminal control definitions */
@@ -121,6 +122,15 @@ get_time ()
   return (ti.tv_usec + 1000000 * ((long long int) ti.tv_sec));
 }
 
+void
+message (const char *fmt, ...)
+{
+  va_list ap;
+  va_start(ap, fmt);
+  if (opt_e)
+    vprintf(fmt, ap);
+  va_end(ap);
+}
 
 int
 open_port (void)
@@ -141,7 +151,7 @@ open_port (void)
   struct termios options;
 
 /*
-  printf ("init port\n");
+  message ("init port\n");
   switch (port)
   {
     case 0:
@@ -168,7 +178,7 @@ open_port (void)
   }
 */
   fd = open (a_device, O_RDWR | O_NOCTTY | O_NDELAY);
-  printf ("got file descriptor fd=%d\n", fd);
+  message ("got file descriptor fd=%d\n", fd);
   if (fd >= 0)
   {
     if (!isatty (fd))
@@ -251,7 +261,7 @@ sndcmd (const int fd, const unsigned char command, const unsigned char addr, con
   g_lli_time1 = get_time (NULL);        // store send time
   if (4 == i)
     return (0);
-  printf ("ERROR: Could send only %d of 4 Bytes\n", i);
+  message ("ERROR: Could send only %d of 4 Bytes\n", i);
   usleep (10000L);             // 10 ms Pause, Pause für die Karte
   return (-1);
 }
@@ -294,7 +304,7 @@ rcvstat (const int fd, unsigned char *answer, unsigned char *addr, unsigned char
     lli_timediff1 = g_lli_time3 - g_lli_time1;  // last receive time - send time
     if ((lli_timediff0 < 5000) or (lli_timediff1 > 25000))      // < 5 ms or > 25 ms
     {
-      printf ("frame warning\n");
+      message ("frame warning\n");
       // return (-1);              // impossible short time or extrem long time
     }
     i_xor = rbuf[0] ^ rbuf[1] ^ rbuf[2];
@@ -311,18 +321,18 @@ rcvstat (const int fd, unsigned char *answer, unsigned char *addr, unsigned char
       i_retval = 0;
       if (i_xor != rbuf[3])
       {
-        printf ("ERROR: XOR checksum is %x but should be %x.\n", i_xor, rbuf[3]);
+        message ("ERROR: XOR checksum is %x but should be %x.\n", i_xor, rbuf[3]);
         i_retval--;
       }
       if (4 != i)
       {
-        printf ("ERROR: Could receive only %d of 4 Bytes.\n", i);
+        message ("ERROR: Could receive only %d of 4 Bytes.\n", i);
         i_retval--;
       }
       if (1 != *addr)
       {
 #ifndef IGNORE_CONRAD_BUGS
-        printf ("ERROR: Receive address is %d but should be 1, ignoring.\n", *addr);
+        message ("ERROR: Receive address is %d but should be 1, ignoring.\n", *addr);
 #endif
         // do not set i_retval: ignore the old conrad bug
       }
@@ -411,7 +421,7 @@ func_timeout (void *threadid)
   pthread_kill (thread1, SIGUSR1);
   if (0 >= g_fd)                // device file could not be opened
   {
-    printf ("ERROR: Timeout, device file could not be opened, file descriptor is %d.\n", g_fd);
+    message ("ERROR: Timeout, device file could not be opened, file descriptor is %d.\n", g_fd);
     retval = -1;
   }
   pthread_exit ((void *) &retval);
@@ -538,7 +548,7 @@ main (int argc, char *argv[])
     sleep (1);                  // wait till the card wakes up ...
     goto err_end;
   }
-  printf ("Firmware-Version %hhu\n", stat);
+  message ("Firmware-Version %hhu\n", stat);
   // zweite Antwort auf das init vernichten
   val = rcvstat (g_fd, &ans, &adr, &rval);
   if (val or (ans != 1))
@@ -557,7 +567,7 @@ main (int argc, char *argv[])
     sleep (1);                  // wait till the card wakes up ...
     goto err_end;
   }
-  printf ("OK, Aktuelle Kontaktstellung: %d\n", stat);
+  message ("OK, Aktuelle Kontaktstellung: %d\n", stat);
 
 /* Parameter auswerten */
   for (n = 2; n < argc; n++)
@@ -619,10 +629,10 @@ main (int argc, char *argv[])
   close (g_fd);
   if ((val) or (ans != 252))
   {
-    printf ("FAIL: %d %d %d %d\n", ans, adr, stat, val);
+    message ("FAIL: %d %d %d %d\n", ans, adr, stat, val);
     goto err_end;
   }
-  printf ("OK, Neue Kontaktstellung: %d\n", stat);
+  message ("OK, Neue Kontaktstellung: %d\n", stat);
   exit (0);
 err_end:
   if (g_fd)
