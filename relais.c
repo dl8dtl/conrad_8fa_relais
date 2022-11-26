@@ -108,7 +108,7 @@ static char a_device[256];      // device name
 
 // time(NULL) with microsecond resolution
 inline signed long long int
-get_time ()
+get_time (void)
 {
   struct timeval ti;
   struct timezone tzp;
@@ -232,7 +232,7 @@ sndcmd (const int fd, const unsigned char command, const unsigned char addr, con
   unsigned char wbuf[4];
   int i;
 
-  g_lli_time0 = get_time (NULL);        // store start time
+  g_lli_time0 = get_time ();        // store start time
   wbuf[0] = command;
   wbuf[1] = addr;
   wbuf[2] = data;
@@ -244,7 +244,7 @@ sndcmd (const int fd, const unsigned char command, const unsigned char addr, con
   usleep (100000L);             // 100 ms Pause, Pause für die Karte
   i = write (fd, wbuf, 4);
   tcdrain (fd);                 // wait till the output has been transmitted
-  g_lli_time1 = get_time (NULL);        // store send time
+  g_lli_time1 = get_time ();        // store send time
   if (4 == i)
     return (0);
   printf ("ERROR: Could send only %d of 4 Bytes\n", i);
@@ -281,11 +281,11 @@ rcvstat (const int fd, unsigned char *answer, unsigned char *addr, unsigned char
       tcflush (fd, TCIOFLUSH);  // flush buffers
       return (-1);
     }
-    g_lli_time2 = get_time (NULL);      // store first receive time
+    g_lli_time2 = get_time ();      // store first receive time
     i += read (fd, rbuf, 4);
     if (i < 4) // not all bytes have been received: loop
 	goto loop;
-    g_lli_time3 = get_time (NULL);      // store last receive time
+    g_lli_time3 = get_time ();      // store last receive time
     lli_timediff0 = g_lli_time3 - g_lli_time0;  // first receive time - send time
     lli_timediff1 = g_lli_time3 - g_lli_time1;  // last receive time - send time
     if ((lli_timediff0 < 5000) or (lli_timediff1 > 25000))      // < 5 ms or > 25 ms
