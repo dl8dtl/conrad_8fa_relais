@@ -381,7 +381,7 @@ sig_handler_main (const int sig)        // signal handler
 {
   if ((SIGINT == sig) or (SIGILL == sig) or (SIGKILL == sig) or (SIGSEGV == sig) or (SIGTERM == sig))
   {
-    (void) printf ("\a\a\a\a\a\a\a Signal %d, program exiting... \r\n\a\a\a", sig);
+    (void) fprintf (stderr, "\a\a\a\a\a\a\a Signal %d, program exiting... \r\n\a\a\a", sig);
     exit (-sig);
   }
   return;
@@ -400,7 +400,7 @@ sig_handler1 (const int sig)    // signal handler for the open thread
   }
   if ((SIGINT == sig) or (SIGILL == sig) or (SIGKILL == sig) or (SIGSEGV == sig) or (SIGTERM == sig))
   {
-    (void) printf ("\a\a\a\a\a\a\a Signal %d, program exiting... \r\n\a\a\a", sig);
+    (void) fprintf (stderr, "\a\a\a\a\a\a\a Signal %d, program exiting... \r\n\a\a\a", sig);
     exit (retval);
   }
   return;
@@ -551,25 +551,25 @@ main (int argc, char *argv[])
   }
   if (pthread_attr_init (&attr))
   {
-    printf ("pthread_attr_init FAILED\n");
+    fprintf (stderr, "pthread_attr_init FAILED\n");
     goto err_end;
   }
   if (pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE))
   {
-    printf ("\npthread_attr_setdetachstate FAILED\n");
+    fprintf (stderr, "\npthread_attr_setdetachstate FAILED\n");
     (void) pthread_attr_destroy (&attr);
     goto err_end;
   }
   // create thread for timeout (to avoid hangup in open_serial, e. g. when the device can not be opened)
   if ((i_ret = pthread_create (&thread0, &attr, func_timeout, (void *) &id0)))
   {
-    printf ("ERROR; return code from pthread_create(...) is %d\n", i_ret);
+    fprintf (stderr, "ERROR; return code from pthread_create(...) is %d\n", i_ret);
     perror ("pthread_create(...)\n");
     goto err_end;
   }
   if ((i_ret = pthread_create (&thread1, &attr, func_open, (void *) &id1)))
   {
-    printf ("ERROR; return code from pthread_create(...) is %d\n", i_ret);
+    fprintf (stderr, "ERROR; return code from pthread_create(...) is %d\n", i_ret);
     perror ("pthread_create(...)\n");
     goto err_end;
   }
