@@ -409,7 +409,7 @@ sig_handler1 (const int sig)    // signal handler for the open thread
 
 // simple timeout
 void *
-func_timeout (void *threadid)
+func_timeout (void *threadid __attribute__((unused)))
 {
   static int retval;            // Without static the returned retval would always be zero.
   int i;
@@ -430,7 +430,7 @@ func_timeout (void *threadid)
 
 // open thread which can hang at open_port
 void *
-func_open (void *threadid)
+func_open (void *threadid __attribute__((unused)))
 {
   static int retval;            // Without static the returned retval would always be zero.
   int i;
