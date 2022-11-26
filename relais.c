@@ -103,7 +103,11 @@ Rolf Freitag 2005: Added select, tcflush, timeout with pthread, ioctl for exclus
 volatile static int g_fd;       // global file descriptor (for device file)
 volatile static long long int g_lli_time0, g_lli_time1, g_lli_time2, g_lli_time3;       // global times
 static pthread_t thread1;       // open thread
-static char a_device[256];      // device name
+static char *a_device;      // device name
+
+// options
+static int opt_e;
+static const char *opt_s;
 
 
 // time(NULL) with microsecond resolution
@@ -450,12 +454,51 @@ main (int argc, char *argv[])
   setjmp (env);                 // restart point after failure
   for (i = 0; i <= 0xff; i++)
     signal (i, sig_handler_main);
-  if ((argc <= 2) || (strncmp (argv[1], "--help", 123) == 0))
-  {
-    help ();
-    exit (0);
+  while ((i = getopt(argc, argv, "d:ehir:s:")) != -1) {
+    switch (i) {
+    case 'd':
+      a_device = optarg;
+      break;
+
+    case 'e':
+      // verbose error messages
+      opt_e = 1;
+      break;
+
+    case 'h':
+      help();
+      exit(0);
+      break;
+
+    case 'i':
+      // initialize card; ignored
+      break;
+
+    case 'r':
+      // card number; ignored
+      break;
+
+    case 's':
+      // set/clear string
+      opt_s = optarg;
+      break;
+
+    default:
+      fprintf(stderr, "unknown option %c\n", i);
+      help();
+      exit(1);
+    }
   }
-  strncpy (a_device, argv[1], sizeof (a_device));       // copy device name
+  argc -= optind;
+  argv += optind;
+  if (argc != 0) {
+    fprintf(stderr, "extraneous arguments, starting at %s\n", argv[0]);
+    exit(1);
+  }
+  if (a_device == NULL) {
+    fprintf(stderr, "no device name\n");
+    exit(1);
+  }
   if (pthread_attr_init (&attr))
   {
     printf ("pthread_attr_init FAILED\n");
