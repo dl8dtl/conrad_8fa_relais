@@ -449,12 +449,52 @@ func_open (void *threadid __attribute__((unused)))
   pthread_exit ((void *) &retval);
 }
 
+unsigned
+option_s (unsigned val)
+{
+  // decode -s string
+  // format: 01xx10 where
+  // 0: clear bit
+  // 1: set bit
+  // x: ignore
+  unsigned value = val, bitval = 1;
+  size_t optlen = strlen(opt_s);
+  for (int i = 0; i < 8; i++)
+  {
+    if (optlen == 0)
+      break;
+    optlen--;
+    char c = opt_s[optlen];
+    switch (c)
+    {
+    case '1':
+      value |= bitval;
+      break;
+
+    case '0':
+      value &= ~bitval;
+      break;
+
+    case 'x':
+      // do nothing here, just shift
+      break;
+
+    default:
+      fprintf (stderr, "ERROR: unknown character in -s option: %c\n", c);
+    }
+    bitval <<= 1;
+  }
+  if (optlen > 0)
+    fprintf (stderr, "WARNING: -s option string too long\n");
+
+  return value;
+}
 
 int
 main (int argc, char *argv[])
 {                               // static asserts that all values are initialized with 0 recursively
   int i, i_ret, id0, id1;        // i, File descriptor for the port, return value, thread id
-  unsigned char ans, adr, stat, val, rval = 0, n, retval;
+  unsigned char ans, adr, stat, val, rval = 0, retval;
   pthread_attr_t attr;
   int thread_return0, thread_return1;    // for pthread_return
   void *statusp;         // for pthread_return
@@ -569,70 +609,20 @@ main (int argc, char *argv[])
   }
   message ("OK, Aktuelle Kontaktstellung: %d\n", stat);
 
-/* Parameter auswerten */
-  for (n = 2; n < argc; n++)
+  /* Parameter auswerten */
+  if (opt_s)
   {
-    if (strncmp (argv[n], "-stat", 123) == 0)
-    {
-      close (g_fd);
-      exit (0);
-    }
-    else
-    {
-      if (strncmp (argv[n], "-off", 123) == 0)
+    rval = option_s(val);
+    sndcmd (g_fd, 3, 1, rval);
+    val = rcvstat (g_fd, &ans, &adr, &stat);
+    if ((val) or (ans != 252))
       {
-        /* Alles ausschalten */
-        rval = 0;
+        message ("FAIL: %d %d %d %d\n", ans, adr, stat, val);
+        goto err_end;
       }
-      else
-      {
-        if (strncmp (argv[n], "-on", 123) == 0)
-        {
-          /* Alles einschalten */
-          rval = 255;
-        }
-        else
-        {
-          if ((argv[n][0] == '-') && (argv[n][1] == 's'))
-          {
-            val = atoi (&argv[n][2]);   /* Zahl hinter dem "-s" umwandeln */
-            if ((1 <= val) && (val <= 8))
-            {
-              val = 1 << (val - 1);
-              rval = rval | val;
-            }
-          }
-          else
-          {
-            if ((argv[n][0] == '-') && (argv[n][1] == 'r'))
-            {
-              val = atoi (&argv[n][2]); /* Zahl hinter dem "-r" umwandeln */
-              if ((1 <= val) && (val <= 8))
-              {
-                val = ~(1 << (val - 1));
-                rval = rval & val;
-              }
-            }
-            else
-            {
-              fprintf (stderr, "ERROR: Wrong Parameter: %s, exiting.\n", argv[n]);
-              close (g_fd);
-              exit (-1);
-            }
-          }
-        }
-      }
-    }
+    message ("OK, Neue Kontaktstellung: %d\n", stat);
   }
-  sndcmd (g_fd, 3, 1, rval);
-  val = rcvstat (g_fd, &ans, &adr, &stat);
   close (g_fd);
-  if ((val) or (ans != 252))
-  {
-    message ("FAIL: %d %d %d %d\n", ans, adr, stat, val);
-    goto err_end;
-  }
-  message ("OK, Neue Kontaktstellung: %d\n", stat);
   exit (0);
 err_end:
   if (g_fd)
