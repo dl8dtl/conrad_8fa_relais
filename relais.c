@@ -108,6 +108,7 @@ static char *a_device;      // device name
 // options
 static int opt_e;
 static const char *opt_s;
+static int opt_S;
 
 
 // time(NULL) with microsecond resolution
@@ -507,7 +508,7 @@ main (int argc, char *argv[])
 
   for (i = 0; i <= 0xff; i++)
     signal (i, sig_handler_main);
-  while ((i = getopt(argc, argv, "d:ehir:s:")) != -1) {
+  while ((i = getopt(argc, argv, "d:ehir:s:S")) != -1) {
     switch (i) {
     case 'd':
       a_device = optarg;
@@ -534,6 +535,10 @@ main (int argc, char *argv[])
     case 's':
       // set/clear string
       opt_s = optarg;
+      break;
+
+    case 'S':
+      opt_S = 1;
       break;
 
     default:
@@ -611,6 +616,8 @@ main (int argc, char *argv[])
     goto err_end;
   }
   message ("OK, Aktuelle Kontaktstellung: %d\n", stat);
+  if (opt_S)
+    printf("%d\n", stat);
 
   /* Parameter auswerten */
   if (opt_s)
