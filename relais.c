@@ -50,7 +50,6 @@ Rolf Freitag 2005: Added select, tcflush, timeout with pthread, ioctl for exclus
 #include <string.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
-#include <setjmp.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>             // signals
@@ -258,11 +257,11 @@ sndcmd (const int fd, const unsigned char command, const unsigned char addr, con
   usleep (100000L);             // 100 ms Pause, Pause für die Karte
   i = write (fd, wbuf, 4);
   tcdrain (fd);                 // wait till the output has been transmitted
-  usleep (10000L);             // 10 ms Pause, Pause für die Karte
   g_lli_time1 = get_time ();        // store send time
   if (4 == i)
     return (0);
   message ("ERROR: Could send only %d of 4 Bytes\n", i);
+  usleep (10000L);             // 10 ms Pause, Pause für die Karte
   return (-1);
 }
 
@@ -457,7 +456,11 @@ option_s (unsigned val)
   // 0: clear bit
   // 1: set bit
   // x: ignore
-  unsigned value = val, bitval = 1;
+
+  // The resulting high byte contains the "set" information, the
+  // resulting low byte the "clear" information.
+
+  unsigned setval = 0, clrval = 0, bitval = 1;
   size_t optlen = strlen(opt_s);
   for (int i = 0; i < 8; i++)
   {
@@ -468,11 +471,13 @@ option_s (unsigned val)
     switch (c)
     {
     case '1':
-      value |= bitval;
+      if ((val & bitval) == 0)
+        setval |= bitval;
       break;
 
     case '0':
-      value &= ~bitval;
+      if ((val & bitval) != 0)
+        clrval |= bitval;
       break;
 
     case 'x':
@@ -487,21 +492,19 @@ option_s (unsigned val)
   if (optlen > 0)
     fprintf (stderr, "WARNING: -s option string too long\n");
 
-  return value;
+  return (setval << 8) | clrval;
 }
 
 int
 main (int argc, char *argv[])
 {                               // static asserts that all values are initialized with 0 recursively
   int i, i_ret, id0, id1;        // i, File descriptor for the port, return value, thread id
-  unsigned char ans, adr, stat, val, rval = 0, retval;
+  unsigned char ans, adr, stat, val, rval = 0;
   pthread_attr_t attr;
   int thread_return0, thread_return1;    // for pthread_return
   void *statusp;         // for pthread_return
-  jmp_buf env;           // environment
   pthread_t thread0;
 
-  setjmp (env);                 // restart point after failure
   for (i = 0; i <= 0xff; i++)
     signal (i, sig_handler_main);
   while ((i = getopt(argc, argv, "d:ehir:s:")) != -1) {
@@ -612,8 +615,19 @@ main (int argc, char *argv[])
   /* Parameter auswerten */
   if (opt_s)
   {
-    rval = option_s(val);
-    sndcmd (g_fd, 3, 1, rval);
+    unsigned result = option_s(stat);
+    unsigned clrval = result & 0xFF;
+    if (clrval != 0)
+    {
+      message ("Loesche Bits %u\n", clrval);
+      sndcmd (g_fd, 7, 1, clrval);
+    }
+    unsigned setval = (result & 0xFF00) >> 8;
+    if (setval != 0)
+    {
+      message ("Setze Bits %u\n", setval);
+      sndcmd (g_fd, 6, 1, setval);
+    }
     val = rcvstat (g_fd, &ans, &adr, &stat);
     if ((val) or (ans != 252))
       {
@@ -627,10 +641,5 @@ main (int argc, char *argv[])
 err_end:
   if (g_fd)
     close (g_fd);
-  retval = -1;                  // use another value before goto and delete this line if you need different error codes
-#ifdef EXIT_ONLY_ON_SUCCESS
-  longjmp (env, retval);
-#else
-  exit (retval);
-#endif
+  exit (1);
 }
