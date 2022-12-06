@@ -256,12 +256,12 @@ sndcmd (const int fd, const unsigned char command, const unsigned char addr, con
 #endif
   usleep (100000L);             // 100 ms Pause, Pause für die Karte
   i = write (fd, wbuf, 4);
+  usleep (10000L);             // 10 ms Pause, Pause für die Karte
   tcdrain (fd);                 // wait till the output has been transmitted
   g_lli_time1 = get_time ();        // store send time
   if (4 == i)
     return (0);
   message ("ERROR: Could send only %d of 4 Bytes\n", i);
-  usleep (10000L);             // 10 ms Pause, Pause für die Karte
   return (-1);
 }
 
