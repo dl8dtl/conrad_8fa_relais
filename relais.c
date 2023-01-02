@@ -606,7 +606,7 @@ main (int argc, char *argv[])
   }
   message ("OK, Aktuelle Kontaktstellung: %d\n", stat);
   if (opt_S)
-    printf("%d\n", stat);
+    printf("%d", stat);
 
   /* Parameter auswerten */
   if (opt_s)
